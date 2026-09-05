@@ -732,6 +732,9 @@ def financials(stock, currency):
     balance = stock.balance_sheet
     cashflow = stock.cashflow
 
+    def format_money(value):
+        return "N/A" if value is None else f"{currency}{value:,.0f}"
+
     if not annual.empty:
         p = annual.columns[0]
 
@@ -747,72 +750,55 @@ def financials(stock, currency):
         net = annual_value("Net Income")
 
         st.markdown("### Profit & Loss Statement")
-
         st.caption(
             "Financial Year: "
-            + (
-                p.strftime("%Y")
-                if hasattr(p, "strftime")
-                else str(p)
-            )
+            + (p.strftime("%Y") if hasattr(p, "strftime") else str(p))
         )
 
-        cols = st.columns(5)
+        margin_gross = (
+            gross / revenue * 100
+            if revenue and gross is not None
+            else None
+        )
+        margin_operating = (
+            operating / revenue * 100
+            if revenue and operating is not None
+            else None
+        )
+        margin_net = (
+            net / revenue * 100
+            if revenue and net is not None
+            else None
+        )
 
-        values = [
-            ("Revenue", revenue),
-            ("Gross Profit", gross),
-            ("Operating Income", operating),
-            ("EBITDA", ebitda),
-            ("Net Income", net)
-        ]
-
-        for col, (name, value) in zip(
-            cols,
-            values
-        ):
-            with col:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
-
-        margins = [
-            (
+        pnl_table = {
+            "Financial Item": [
+                "Revenue",
+                "Gross Profit",
+                "Operating Income",
+                "EBITDA",
+                "Net Income",
                 "Gross Margin",
-                gross / revenue * 100
-                if revenue and gross is not None
-                else None
-            ),
-            (
                 "Operating Margin",
-                operating / revenue * 100
-                if revenue and operating is not None
-                else None
-            ),
-            (
-                "Net Profit Margin",
-                net / revenue * 100
-                if revenue and net is not None
-                else None
-            )
-        ]
+                "Net Profit Margin"
+            ],
+            "Value": [
+                format_money(revenue),
+                format_money(gross),
+                format_money(operating),
+                format_money(ebitda),
+                format_money(net),
+                "N/A" if margin_gross is None else f"{margin_gross:.2f}%",
+                "N/A" if margin_operating is None else f"{margin_operating:.2f}%",
+                "N/A" if margin_net is None else f"{margin_net:.2f}%"
+            ]
+        }
 
-        cols = st.columns(3)
-
-        for col, (name, value) in zip(
-            cols,
-            margins
-        ):
-            with col:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{value:+.2f}%"
-                )
+        st.dataframe(
+            pnl_table,
+            use_container_width=True,
+            hide_index=True
+        )
 
     if not quarterly.empty:
         p = quarterly.columns[0]
@@ -830,33 +816,21 @@ def financials(stock, currency):
         )
 
         st.markdown("### Latest Quarter")
-
         st.caption(
             "Quarter Ended: "
-            + (
-                p.strftime("%d-%b-%Y")
-                if hasattr(p, "strftime")
-                else str(p)
-            )
+            + (p.strftime("%d-%b-%Y") if hasattr(p, "strftime") else str(p))
         )
 
-        cols = st.columns(2)
+        quarterly_table = {
+            "Financial Item": ["Revenue", "Net Income"],
+            "Value": [format_money(revenue), format_money(net)]
+        }
 
-        with cols[0]:
-            st.metric(
-                "Revenue",
-                "N/A"
-                if revenue is None
-                else f"{currency}{revenue:,.0f}"
-            )
-
-        with cols[1]:
-            st.metric(
-                "Net Income",
-                "N/A"
-                if net is None
-                else f"{currency}{net:,.0f}"
-            )
+        st.dataframe(
+            quarterly_table,
+            use_container_width=True,
+            hide_index=True
+        )
 
     if not balance.empty:
         p = balance.columns[0]
@@ -867,64 +841,20 @@ def financials(stock, currency):
             return None
 
         assets = balance_value("Total Assets")
-
         liabilities = balance_value(
             "Total Liabilities Net Minority Interest"
         )
-
         debt = balance_value("Total Debt")
-
         cash = balance_value(
             "Cash Cash Equivalents And Short Term Investments"
         )
-
-        current_assets = balance_value(
-            "Current Assets"
-        )
-
-        current_liabilities = balance_value(
-            "Current Liabilities"
-        )
-
-        equity = balance_value(
-            "Stockholders Equity"
-        )
-
-        st.markdown("### Balance Sheet")
-
-        st.caption(
-            "Financial Year: "
-            + (
-                p.strftime("%Y")
-                if hasattr(p, "strftime")
-                else str(p)
-            )
-        )
-
-        rows = [
-            ("Total Assets", assets),
-            ("Total Liabilities", liabilities),
-            ("Total Debt", debt),
-            ("Total Cash", cash),
-            ("Current Assets", current_assets),
-            ("Current Liabilities", current_liabilities)
-        ]
-
-        cols = st.columns(3)
-
-        for i, (name, value) in enumerate(rows):
-            with cols[i % 3]:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
+        current_assets = balance_value("Current Assets")
+        current_liabilities = balance_value("Current Liabilities")
+        equity = balance_value("Stockholders Equity")
 
         current_ratio = (
             current_assets / current_liabilities
-            if current_assets is not None
-            and current_liabilities
+            if current_assets is not None and current_liabilities
             else None
         )
 
@@ -936,36 +866,46 @@ def financials(stock, currency):
 
         working_capital = (
             current_assets - current_liabilities
-            if current_assets is not None
-            and current_liabilities is not None
+            if current_assets is not None and current_liabilities is not None
             else None
         )
 
-        cols = st.columns(3)
+        st.markdown("### Balance Sheet")
+        st.caption(
+            "Financial Year: "
+            + (p.strftime("%Y") if hasattr(p, "strftime") else str(p))
+        )
 
-        with cols[0]:
-            st.metric(
+        balance_table = {
+            "Financial Item": [
+                "Total Assets",
+                "Total Liabilities",
+                "Total Debt",
+                "Total Cash",
+                "Current Assets",
+                "Current Liabilities",
                 "Current Ratio",
-                "N/A"
-                if current_ratio is None
-                else f"{current_ratio:.2f}"
-            )
-
-        with cols[1]:
-            st.metric(
                 "Debt-to-Equity",
-                "N/A"
-                if debt_equity is None
-                else f"{debt_equity:.2f}"
-            )
+                "Working Capital"
+            ],
+            "Value": [
+                format_money(assets),
+                format_money(liabilities),
+                format_money(debt),
+                format_money(cash),
+                format_money(current_assets),
+                format_money(current_liabilities),
+                "N/A" if current_ratio is None else f"{current_ratio:.2f}",
+                "N/A" if debt_equity is None else f"{debt_equity:.2f}",
+                format_money(working_capital)
+            ]
+        }
 
-        with cols[2]:
-            st.metric(
-                "Working Capital",
-                "N/A"
-                if working_capital is None
-                else f"{currency}{working_capital:,.0f}"
-            )
+        st.dataframe(
+            balance_table,
+            use_container_width=True,
+            hide_index=True
+        )
 
     if not cashflow.empty:
         p = cashflow.columns[0]
@@ -976,52 +916,33 @@ def financials(stock, currency):
             return None
 
         st.markdown("### Cash Flow Statement")
-
         st.caption(
             "Financial Year: "
-            + (
-                p.strftime("%Y")
-                if hasattr(p, "strftime")
-                else str(p)
-            )
+            + (p.strftime("%Y") if hasattr(p, "strftime") else str(p))
         )
 
-        rows = [
-            (
+        cashflow_table = {
+            "Financial Item": [
                 "Operating Cash Flow",
-                "Operating Cash Flow"
-            ),
-            (
                 "Free Cash Flow",
-                "Free Cash Flow"
-            ),
-            (
                 "Capital Expenditure",
-                "Capital Expenditure"
-            ),
-            (
                 "Investing Cash Flow",
-                "Investing Cash Flow"
-            ),
-            (
-                "Financing Cash Flow",
                 "Financing Cash Flow"
-            )
-        ]
+            ],
+            "Value": [
+                format_money(cashflow_value("Operating Cash Flow")),
+                format_money(cashflow_value("Free Cash Flow")),
+                format_money(cashflow_value("Capital Expenditure")),
+                format_money(cashflow_value("Investing Cash Flow")),
+                format_money(cashflow_value("Financing Cash Flow"))
+            ]
+        }
 
-        cols = st.columns(3)
-
-        for i, (name, key) in enumerate(rows):
-            value = cashflow_value(key)
-
-            with cols[i % 3]:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
-
+        st.dataframe(
+            cashflow_table,
+            use_container_width=True,
+            hide_index=True
+        )
 
 def dividends(info, stock, currency):
     section("Dividend Analysis")
