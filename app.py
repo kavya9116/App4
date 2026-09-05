@@ -181,46 +181,40 @@ def card(title, value):
 
 
 def exchange_instructions():
-    rows = ""
+    st.markdown("**Enter the stock symbol along with the exchange code.**")
 
-    for name, code in EXCHANGES.items():
-        rows += f"""
-        <tr>
-            <td>{name}</td>
-            <td>{code}</td>
-        </tr>
-        """
+    st.table({
+        "Exchange": [
+            "NSE (India)",
+            "BSE (India)",
+            "NASDAQ (USA)",
+            "NYSE (USA)",
+            "LSE (UK)",
+            "TSX (Canada)",
+            "ASX (Australia)",
+            "Tokyo (Japan)"
+        ],
+        "Code": [
+            ".NS",
+            ".BO",
+            "No suffix",
+            "No suffix",
+            ".L",
+            ".TO",
+            ".AX",
+            ".T"
+        ]
+    })
 
     st.markdown(
-        f"""
-        <div class="exchange-box">
-            <b>Enter the stock symbol along with the exchange code.</b>
-            <br><br>
-
-            <table style="width:100%;color:#dbeeff">
-                <tr>
-                    <th style="text-align:left">Exchange</th>
-                    <th style="text-align:left">Code</th>
-                </tr>
-                {rows}
-            </table>
-
-            <br>
-
-            <b>Examples:</b><br>
-            Reliance - NSE: RELIANCE.NS &nbsp; | &nbsp;
-            Reliance - BSE: RELIANCE.BO<br>
-
-            Apple - NASDAQ: AAPL &nbsp; | &nbsp;
-            Microsoft - NASDAQ: MSFT<br>
-
-            Coca-Cola - NYSE: KO &nbsp; | &nbsp;
-            Toyota - Tokyo: 7203.T
-        </div>
-        """,
-        unsafe_allow_html=True
+        "**Examples:**  \n"
+        "`Reliance – NSE:` `RELIANCE.NS`  \n"
+        "`Reliance – BSE:` `RELIANCE.BO`  \n"
+        "`Apple – NASDAQ:` `AAPL`  \n"
+        "`Microsoft – NASDAQ:` `MSFT`  \n"
+        "`Coca-Cola – NYSE:` `KO`  \n"
+        "`Toyota – Tokyo:` `7203.T`"
     )
-
 
 @st.cache_data(ttl=300, show_spinner=False)
 def get_stock_info(symbol):
