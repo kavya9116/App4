@@ -1092,12 +1092,12 @@ def charts(symbol, currency):
 
     ma50 = st.checkbox(
         "Show 50D Moving Average",
-        key="show_ma50"
+        key="graph_show_ma50"
     )
 
     ma200 = st.checkbox(
         "Show 200D Moving Average",
-        key="show_ma200"
+        key="graph_show_ma200"
     )
 
     if st.button(
@@ -1460,30 +1460,31 @@ def main():
         st.markdown("### Analysis")
 
         nav_items = [
-            "📑 Fundamental Analysis",
-            "📈 Technical Analysis",
-            "📊 Graph Analysis",
-            "🔄 Comparison of Stocks"
-        ]
+        "📑 Fundamental Analysis",
+        "📈 Technical Analysis",
+        "📊 Graph Analysis",
+        "🔄 Comparison of Stocks"
+    ]
 
-        if "analysis_category" not in st.session_state:
-            st.session_state["analysis_category"] = nav_items[0]
+    if "analysis_category" not in st.session_state:
+        st.session_state["analysis_category"] = nav_items[0]
 
     nav_cols = st.columns(4)
 
-    for i, (col, item) in enumerate(zip(nav_cols, nav_items)):
-        with col:
-            if st.button(
-                item,
-                key=f"nav_{i}",
-                type=(
-                    "primary"
-                    if st.session_state["analysis_category"] == item
-                    else "secondary"
-                ),
-                use_container_width=True
-            ):
-                st.session_state["analysis_category"] = item
+    for index in range(4):
+        item = nav_items[index]
+
+        if nav_cols[index].button(
+            item,
+            key=f"nav_{index}",
+            type=(
+                "primary"
+                if st.session_state["analysis_category"] == item
+                else "secondary"
+            ),
+            use_container_width=True
+        ):
+            st.session_state["analysis_category"] = item
 
     st.divider()
 
@@ -1497,7 +1498,7 @@ def main():
                 "selected_info"
             ],
             analysis_category
-    )
+        )
 
 
 if __name__ == "__main__":
