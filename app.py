@@ -1460,43 +1460,39 @@ def main():
         st.markdown("### Analysis")
 
         nav_items = [
-        "📑 Fundamental Analysis",
-        "📈 Technical Analysis",
-        "📊 Graph Analysis",
-        "🔄 Comparison of Stocks"
-    ]
+            "📑 Fundamental Analysis",
+            "📈 Technical Analysis",
+            "📊 Graph Analysis",
+            "🔄 Comparison of Stocks"
+        ]
 
-    if "analysis_category" not in st.session_state:
-        st.session_state["analysis_category"] = nav_items[0]
+        if "analysis_category" not in st.session_state:
+            st.session_state["analysis_category"] = nav_items[0]
 
-    nav_cols = st.columns(4)
+        nav_cols = st.columns(4)
 
-    for index in range(4):
-        item = nav_items[index]
+        for index in range(4):
+            item = nav_items[index]
 
-        if nav_cols[index].button(
-            item,
-            key=f"nav_{index}",
-            type=(
-                "primary"
-                if st.session_state["analysis_category"] == item
-                else "secondary"
-            ),
-            use_container_width=True
-        ):
-            st.session_state["analysis_category"] = item
+            if nav_cols[index].button(
+                item,
+                key=f"nav_{index}",
+                type=(
+                    "primary"
+                    if st.session_state["analysis_category"] == item
+                    else "secondary"
+                ),
+                use_container_width=True
+            ):
+                st.session_state["analysis_category"] = item
 
-    st.divider()
+        st.divider()
 
-    analysis_category = st.session_state["analysis_category"]
+        analysis_category = st.session_state["analysis_category"]
 
-    stock_dashboard(
-            st.session_state[
-                "selected_symbol"
-            ],
-            st.session_state[
-                "selected_info"
-            ],
+        stock_dashboard(
+            st.session_state["selected_symbol"],
+            st.session_state["selected_info"],
             analysis_category
         )
 
