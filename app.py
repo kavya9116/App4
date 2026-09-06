@@ -1488,6 +1488,8 @@ def main():
 
         st.divider()
 
+        analysis_category = st.session_state["analysis_category"]
+
         stock_dashboard(
             st.session_state[
                 "selected_symbol"
