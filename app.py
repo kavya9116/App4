@@ -1469,25 +1469,25 @@ def main():
         if "analysis_category" not in st.session_state:
             st.session_state["analysis_category"] = nav_items[0]
 
-nav_cols = st.columns(4)
+    nav_cols = st.columns(4)
 
-for i, (col, item) in enumerate(zip(nav_cols, nav_items)):
-    with col:
-        if st.button(
-            item,
-            key=f"nav_{i}",
-            type=(
-                "primary"
-                if st.session_state["analysis_category"] == item
-                else "secondary"
-            ),
-            use_container_width=True
-        ):
-            st.session_state["analysis_category"] = item
+    for i, (col, item) in enumerate(zip(nav_cols, nav_items)):
+        with col:
+            if st.button(
+                item,
+                key=f"nav_{i}",
+                type=(
+                    "primary"
+                    if st.session_state["analysis_category"] == item
+                    else "secondary"
+                ),
+                use_container_width=True
+            ):
+                st.session_state["analysis_category"] = item
 
-st.divider()
+    st.divider()
 
-analysis_category = st.session_state["analysis_category"]
+    analysis_category = st.session_state["analysis_category"]
 
         stock_dashboard(
             st.session_state[
