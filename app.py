@@ -1489,7 +1489,7 @@ def main():
 
     analysis_category = st.session_state["analysis_category"]
 
-        stock_dashboard(
+    stock_dashboard(
             st.session_state[
                 "selected_symbol"
             ],
@@ -1497,7 +1497,7 @@ def main():
                 "selected_info"
             ],
             analysis_category
-        )
+    )
 
 
 if __name__ == "__main__":
