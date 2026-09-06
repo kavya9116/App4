@@ -732,22 +732,34 @@ def financials(stock, currency):
     balance = stock.balance_sheet
     cashflow = stock.cashflow
 
+    def value(frame, key, column):
+        if frame is not None and not frame.empty and key in frame.index:
+            return frame.loc[key, column]
+        return None
+
+    def money_value(v):
+        return "N/A" if v is None else f"{currency}{v:,.0f}"
+
     if not annual.empty:
         p = annual.columns[0]
 
-        def annual_value(key):
-            if key in annual.index:
-                return annual.loc[key, p]
-            return None
+        rows = [
+            ("Revenue", value(annual, "Total Revenue", p)),
+            ("Gross Profit", value(annual, "Gross Profit", p)),
+            ("Operating Income", value(annual, "Operating Income", p)),
+            ("EBITDA", value(annual, "EBITDA", p)),
+            ("Net Income", value(annual, "Net Income", p))
+        ]
 
-        revenue = annual_value("Total Revenue")
-        gross = annual_value("Gross Profit")
-        operating = annual_value("Operating Income")
-        ebitda = annual_value("EBITDA")
-        net = annual_value("Net Income")
+        table = [
+            {
+                "Financial Item": name,
+                "Value": money_value(v)
+            }
+            for name, v in rows
+        ]
 
         st.markdown("### Profit & Loss Statement")
-
         st.caption(
             "Financial Year: "
             + (
@@ -756,81 +768,29 @@ def financials(stock, currency):
                 else str(p)
             )
         )
-
-        cols = st.columns(5)
-
-        values = [
-            ("Revenue", revenue),
-            ("Gross Profit", gross),
-            ("Operating Income", operating),
-            ("EBITDA", ebitda),
-            ("Net Income", net)
-        ]
-
-        for col, (name, value) in zip(
-            cols,
-            values
-        ):
-            with col:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
-
-        margins = [
-            (
-                "Gross Margin",
-                gross / revenue * 100
-                if revenue and gross is not None
-                else None
-            ),
-            (
-                "Operating Margin",
-                operating / revenue * 100
-                if revenue and operating is not None
-                else None
-            ),
-            (
-                "Net Profit Margin",
-                net / revenue * 100
-                if revenue and net is not None
-                else None
-            )
-        ]
-
-        cols = st.columns(3)
-
-        for col, (name, value) in zip(
-            cols,
-            margins
-        ):
-            with col:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{value:+.2f}%"
-                )
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
+        )
 
     if not quarterly.empty:
         p = quarterly.columns[0]
 
-        revenue = (
-            quarterly.loc["Total Revenue", p]
-            if "Total Revenue" in quarterly.index
-            else None
-        )
+        rows = [
+            ("Revenue", value(quarterly, "Total Revenue", p)),
+            ("Net Income", value(quarterly, "Net Income", p))
+        ]
 
-        net = (
-            quarterly.loc["Net Income", p]
-            if "Net Income" in quarterly.index
-            else None
-        )
+        table = [
+            {
+                "Financial Item": name,
+                "Value": money_value(v)
+            }
+            for name, v in rows
+        ]
 
         st.markdown("### Latest Quarter")
-
         st.caption(
             "Quarter Ended: "
             + (
@@ -839,59 +799,54 @@ def financials(stock, currency):
                 else str(p)
             )
         )
-
-        cols = st.columns(2)
-
-        with cols[0]:
-            st.metric(
-                "Revenue",
-                "N/A"
-                if revenue is None
-                else f"{currency}{revenue:,.0f}"
-            )
-
-        with cols[1]:
-            st.metric(
-                "Net Income",
-                "N/A"
-                if net is None
-                else f"{currency}{net:,.0f}"
-            )
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
+        )
 
     if not balance.empty:
         p = balance.columns[0]
 
-        def balance_value(key):
-            if key in balance.index:
-                return balance.loc[key, p]
-            return None
+        rows = [
+            ("Total Assets", value(balance, "Total Assets", p)),
+            (
+                "Total Liabilities",
+                value(
+                    balance,
+                    "Total Liabilities Net Minority Interest",
+                    p
+                )
+            ),
+            ("Total Debt", value(balance, "Total Debt", p)),
+            (
+                "Total Cash",
+                value(
+                    balance,
+                    "Cash Cash Equivalents And Short Term Investments",
+                    p
+                )
+            ),
+            ("Current Assets", value(balance, "Current Assets", p)),
+            (
+                "Current Liabilities",
+                value(balance, "Current Liabilities", p)
+            ),
+            (
+                "Stockholders Equity",
+                value(balance, "Stockholders Equity", p)
+            )
+        ]
 
-        assets = balance_value("Total Assets")
-
-        liabilities = balance_value(
-            "Total Liabilities Net Minority Interest"
-        )
-
-        debt = balance_value("Total Debt")
-
-        cash = balance_value(
-            "Cash Cash Equivalents And Short Term Investments"
-        )
-
-        current_assets = balance_value(
-            "Current Assets"
-        )
-
-        current_liabilities = balance_value(
-            "Current Liabilities"
-        )
-
-        equity = balance_value(
-            "Stockholders Equity"
-        )
+        table = [
+            {
+                "Financial Item": name,
+                "Value": money_value(v)
+            }
+            for name, v in rows
+        ]
 
         st.markdown("### Balance Sheet")
-
         st.caption(
             "Financial Year: "
             + (
@@ -900,83 +855,47 @@ def financials(stock, currency):
                 else str(p)
             )
         )
-
-        rows = [
-            ("Total Assets", assets),
-            ("Total Liabilities", liabilities),
-            ("Total Debt", debt),
-            ("Total Cash", cash),
-            ("Current Assets", current_assets),
-            ("Current Liabilities", current_liabilities)
-        ]
-
-        cols = st.columns(3)
-
-        for i, (name, value) in enumerate(rows):
-            with cols[i % 3]:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
-
-        current_ratio = (
-            current_assets / current_liabilities
-            if current_assets is not None
-            and current_liabilities
-            else None
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
         )
-
-        debt_equity = (
-            debt / equity
-            if debt is not None and equity
-            else None
-        )
-
-        working_capital = (
-            current_assets - current_liabilities
-            if current_assets is not None
-            and current_liabilities is not None
-            else None
-        )
-
-        cols = st.columns(3)
-
-        with cols[0]:
-            st.metric(
-                "Current Ratio",
-                "N/A"
-                if current_ratio is None
-                else f"{current_ratio:.2f}"
-            )
-
-        with cols[1]:
-            st.metric(
-                "Debt-to-Equity",
-                "N/A"
-                if debt_equity is None
-                else f"{debt_equity:.2f}"
-            )
-
-        with cols[2]:
-            st.metric(
-                "Working Capital",
-                "N/A"
-                if working_capital is None
-                else f"{currency}{working_capital:,.0f}"
-            )
 
     if not cashflow.empty:
         p = cashflow.columns[0]
 
-        def cashflow_value(key):
-            if key in cashflow.index:
-                return cashflow.loc[key, p]
-            return None
+        rows = [
+            (
+                "Operating Cash Flow",
+                value(cashflow, "Operating Cash Flow", p)
+            ),
+            (
+                "Free Cash Flow",
+                value(cashflow, "Free Cash Flow", p)
+            ),
+            (
+                "Capital Expenditure",
+                value(cashflow, "Capital Expenditure", p)
+            ),
+            (
+                "Investing Cash Flow",
+                value(cashflow, "Investing Cash Flow", p)
+            ),
+            (
+                "Financing Cash Flow",
+                value(cashflow, "Financing Cash Flow", p)
+            )
+        ]
+
+        table = [
+            {
+                "Financial Item": name,
+                "Value": money_value(v)
+            }
+            for name, v in rows
+        ]
 
         st.markdown("### Cash Flow Statement")
-
         st.caption(
             "Financial Year: "
             + (
@@ -985,43 +904,11 @@ def financials(stock, currency):
                 else str(p)
             )
         )
-
-        rows = [
-            (
-                "Operating Cash Flow",
-                "Operating Cash Flow"
-            ),
-            (
-                "Free Cash Flow",
-                "Free Cash Flow"
-            ),
-            (
-                "Capital Expenditure",
-                "Capital Expenditure"
-            ),
-            (
-                "Investing Cash Flow",
-                "Investing Cash Flow"
-            ),
-            (
-                "Financing Cash Flow",
-                "Financing Cash Flow"
-            )
-        ]
-
-        cols = st.columns(3)
-
-        for i, (name, key) in enumerate(rows):
-            value = cashflow_value(key)
-
-            with cols[i % 3]:
-                st.metric(
-                    name,
-                    "N/A"
-                    if value is None
-                    else f"{currency}{value:,.0f}"
-                )
-
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
+        )
 
 def dividends(info, stock, currency):
     section("Dividend Analysis")
@@ -1101,85 +988,159 @@ def dividends(info, stock, currency):
         )
 
 
-def shareholders(info):
-    section(
-        "Shareholder & Ownership Analysis"
-    )
+def shareholders(info, stock):
+    section("Shareholder & Ownership Analysis")
 
-    cols = st.columns(2)
-
-    institutional = info.get(
-        "heldPercentInstitutions"
-    )
-
-    insiders = info.get(
-        "heldPercentInsiders"
-    )
-
-    with cols[0]:
-        st.metric(
+    ownership = [
+        (
             "Institutional Ownership",
-            "N/A"
-            if institutional is None
-            else f"{institutional * 100:.2f}%"
-        )
-
-    with cols[1]:
-        st.metric(
+            info.get("heldPercentInstitutions")
+        ),
+        (
             "Insider Ownership",
-            "N/A"
-            if insiders is None
-            else f"{insiders * 100:.2f}%"
-        )
-
-
-def risk(info, currency):
-    section(
-        "Risk & Market Analysis"
-    )
-
-    beta = info.get("beta")
-
-    st.metric(
-        "Beta",
-        "N/A"
-        if beta is None
-        else f"{beta:.2f}"
-    )
-
-    rows = [
-        ("Day's High", "dayHigh"),
-        ("Day's Low", "dayLow"),
-        (
-            "52-Week High",
-            "fiftyTwoWeekHigh"
+            info.get("heldPercentInsiders")
         ),
         (
-            "52-Week Low",
-            "fiftyTwoWeekLow"
+            "Shares Outstanding",
+            info.get("sharesOutstanding")
         ),
         (
-            "50-Day Moving Average",
-            "fiftyDayAverage"
-        ),
-        (
-            "200-Day Moving Average",
-            "twoHundredDayAverage"
+            "Float Shares",
+            info.get("floatShares")
         )
     ]
 
-    cols = st.columns(3)
+    table = []
 
-    for i, (name, key) in enumerate(rows):
-        value = info.get(key)
+    for name, value in ownership:
+        if value is None:
+            display = "N/A"
+        elif "Ownership" in name:
+            display = f"{value * 100:.2f}%"
+        else:
+            display = f"{value:,.0f}"
 
-        with cols[i % 3]:
-            st.metric(
-                name,
-                "N/A"
-                if value is None
-                else f"{currency}{value:,.2f}"
-            )
+        table.append({
+            "Ownership Item": name,
+            "Value": display
+        })
+
+    st.dataframe(
+        table,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    holders = None
+
+    try:
+        holders = stock.institutional_holders
+    except Exception:
+        pass
+
+    if holders is not None and not holders.empty:
+        st.markdown("### Major Institutional Holders")
+        st.dataframe(
+            holders,
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("Institutional holder data not available.")
+
+def risk(info, currency):
+    section("Risk & Market Analysis")
+
+    rows = [
+        ("Beta", info.get("beta"), "number"),
+        ("Day's High", info.get("dayHigh"), "money"),
+        ("Day's Low", info.get("dayLow"), "money"),
+        ("52-Week High", info.get("fiftyTwoWeekHigh"), "money"),
+        ("52-Week Low", info.get("fiftyTwoWeekLow"), "money"),
+        (
+            "50-Day Moving Average",
+            info.get("fiftyDayAverage"),
+            "money"
+        ),
+        (
+            "200-Day Moving Average",
+            info.get("twoHundredDayAverage"),
+            "money"
+        ),
+        (
+            "Average Volume",
+            info.get("averageVolume"),
+            "number"
+        )
+    ]
+
+    table = []
+
+    for name, value, kind in rows:
+        if value is None:
+            display = "N/A"
+        elif kind == "money":
+            display = f"{currency}{value:,.2f}"
+        else:
+            display = f"{value:,.2f}"
+
+        table.append({
+            "Market / Risk Item": name,
+            "Value": display
+        })
+
+    st.dataframe(
+        table,
+        use_container_width=True,
+        hide_index=True
+    )
+
+def analyst_analysis(stock):
+    section("Analyst Analysis")
+
+    sections = [
+        ("Price Targets", "analyst_price_targets"),
+        ("Recommendations", "recommendations"),
+        ("Upgrades & Downgrades", "upgrades_downgrades"),
+        ("Earnings Estimates", "earnings_estimate"),
+        ("Revenue Estimates", "revenue_estimate"),
+        ("EPS Trend", "eps_trend"),
+        ("EPS Revisions", "eps_revisions"),
+        ("Growth Estimates", "growth_estimates")
+    ]
+
+    displayed = False
+
+    for title, attribute in sections:
+        try:
+            data = getattr(stock, attribute)
+        except Exception:
+            data = None
+
+        if data is None:
+            continue
+
+        if hasattr(data, "empty") and data.empty:
+            continue
+
+        st.markdown(f"### {title}")
+
+        if hasattr(data, "to_frame") and not hasattr(data, "columns"):
+            data = data.to_frame()
+
+        if hasattr(data, "reset_index"):
+            data = data.reset_index()
+
+        st.dataframe(
+            data,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        displayed = True
+
+    if not displayed:
+        st.info("Analyst data is not available for this stock.")
 
 
 def charts(symbol, currency):
@@ -1364,15 +1325,49 @@ def stock_dashboard(
     section("Analysis")
 
     if analysis_category == "📊 Graph Analysis":
-        st.info(
-            "Graph Analysis structure is ready. "
-            "Existing charts will be placed here."
+        charts(
+            symbol,
+            currency
         )
 
     elif analysis_category == "📈 Technical Analysis":
-        st.info(
-            "Technical Analysis structure is ready. "
-            "Technical indicators will be added next."
+        section("Technical Analysis")
+
+        rows = [
+            ("50-Day Moving Average", info.get("fiftyDayAverage")),
+            ("200-Day Moving Average", info.get("twoHundredDayAverage")),
+            ("52-Week High", info.get("fiftyTwoWeekHigh")),
+            ("52-Week Low", info.get("fiftyTwoWeekLow")),
+            ("Beta", info.get("beta")),
+            ("Average Volume", info.get("averageVolume"))
+        ]
+
+        table = []
+
+        for name, value in rows:
+            if value is None:
+                display = "N/A"
+            elif "Average" in name and "Volume" not in name:
+                display = f"{currency}{value:,.2f}"
+            elif "High" in name or "Low" in name:
+                display = f"{currency}{value:,.2f}"
+            else:
+                display = f"{value:,.2f}"
+
+            table.append({
+                "Market Indicator": name,
+                "Value": display
+            })
+
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.caption(
+            "These are values directly provided by yfinance. "
+            "Calculated technical indicators will be added in the next phase."
         )
 
     elif analysis_category == "📑 Fundamental Analysis":
@@ -1406,7 +1401,10 @@ def stock_dashboard(
             )
 
         elif fundamental_option == "Shareholder & Ownership Analysis":
-            shareholders(info)
+            shareholders(
+                info,
+                stock
+            )
 
         elif fundamental_option == "Risk & Market Analysis":
             risk(
@@ -1415,10 +1413,7 @@ def stock_dashboard(
             )
 
         elif fundamental_option == "Analyst Analysis":
-            st.info(
-                "Analyst Analysis structure is ready. "
-                "Yfinance-provided analyst data will be added next."
-            )
+            analyst_analysis(stock)
 
     elif analysis_category == "🔄 Stock Comparison":
         compare_stocks(
@@ -1435,8 +1430,8 @@ def main():
             <h1>📈 Stock Tracker</h1>
             <p>
                 Market data, performance, valuation,
-                financials, dividends, ownership
-                and risk analysis.
+                financials, dividends, ownership,
+                risk and analyst data.
             </p>
         </div>
         """,
