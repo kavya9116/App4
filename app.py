@@ -274,52 +274,15 @@ def money(value, currency):
     return f"{currency}{value:,.2f}"
 
 
-def make_chart(data, title, currency, symbol, height=450):
-    if data is None or data.empty:
-        return None
-
-    data = data.copy()
-    data = data.dropna(subset=["Close"])
-
-    if data.empty:
-        return None
-
-    data["Daily Change"] = data["Close"].diff()
-    data["Daily Change %"] = data["Close"].pct_change() * 100
-
-    start = data["Close"].iloc[0]
-
-    data["Period Change %"] = (
-        (data["Close"] - start) / start
-    ) * 100
-
-    final = data["Close"].iloc[-1]
-
-    line_color = (
-        "#00d084"
-        if final >= start
-        else "#ff4d6d"
-    )
-
-    customdata = []
-
-    for i in range(len(data)):
-        daily = data["Daily Change"].iloc[i]
-        daily_pct = data["Daily Change %"].iloc[i]
-        period_pct = data["Period Change %"].iloc[i]
-
-        customdata.append([
-            "N/A"
-            if i == 0
-            else f"{currency}{daily:+,.2f}",
-
-            "N/A"
-            if i == 0
-            else f"{daily_pct:+.2f}%",
-
-            f"{period_pct:+.2f}%"
-        ])
-
+def make_chart(
+    data,
+    title,
+    currency,
+    symbol,
+    height=500,
+    show_ma20=False,
+    show_ma50=False
+):
     fig = go.Figure()
 
     fig.add_trace(
@@ -327,69 +290,42 @@ def make_chart(data, title, currency, symbol, height=450):
             x=data.index,
             y=data["Close"],
             mode="lines",
-            name=symbol,
-            line=dict(
-                color=line_color,
-                width=2.5
-            ),
-            customdata=customdata,
-            hovertemplate=(
-                "<b>" + symbol + "</b><br>"
-                "Date: %{x|%d-%b-%Y}<br>"
-                "Closing Price: " + currency +
-                "%{y:,.2f}<br>"
-                "Daily Change: %{customdata[0]}<br>"
-                "Daily Change %: %{customdata[1]}<br>"
-                "Period Change %: %{customdata[2]}"
-                "<extra></extra>"
+            name=symbol
+        )
+    )
+
+    if show_ma20:
+        ma20 = data["Close"].rolling(20).mean()
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=ma20,
+                mode="lines",
+                name="20D MA"
             )
         )
-    )
 
-    fig.add_hline(
-        y=start,
-        line_dash="dash",
-        line_color="#78909c",
-        line_width=1,
-        annotation_text=(
-            f"Starting Price: "
-            f"{currency}{start:,.2f}"
-        ),
-        annotation_position="top left"
-    )
+    if show_ma50:
+        ma50 = data["Close"].rolling(50).mean()
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=ma50,
+                mode="lines",
+                name="50D MA"
+            )
+        )
 
     fig.update_layout(
-        title=title,
+        title=f"{symbol} — {title}",
         height=height,
-        template="plotly_dark",
-        paper_bgcolor="#05080f",
-        plot_bgcolor="#08111f",
-        font=dict(color="#dbeeff"),
-        margin=dict(
-            l=45,
-            r=25,
-            t=65,
-            b=45
-        ),
-        hovermode="x",
-        xaxis=dict(
-            title="Date",
-            showgrid=True,
-            gridcolor="#132a42"
-        ),
-        yaxis=dict(
-            title=f"Price ({currency})",
-            showgrid=True,
-            gridcolor="#132a42"
-        ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#dbeeff")
-        )
+        xaxis_title="Date",
+        yaxis_title=f"Price ({currency})",
+        hovermode="x unified",
+        margin=dict(l=20, r=20, t=60, b=20)
     )
 
     return fig
-
 
 def make_comparison_chart(
     data1,
@@ -1152,6 +1088,18 @@ def charts(symbol, currency):
         key="chart_period"
     )
 
+    st.markdown("### Moving Average Overlays")
+
+    ma20 = st.checkbox(
+        "Show 20D Moving Average",
+        key="show_ma20"
+    )
+
+    ma50 = st.checkbox(
+        "Show 50D Moving Average",
+        key="show_ma50"
+    )
+
     if st.button(
         "Show Selected Chart",
         type="primary"
@@ -1170,7 +1118,9 @@ def charts(symbol, currency):
                 data,
                 choice,
                 currency,
-                symbol
+                symbol,
+                show_ma20=ma20,
+                show_ma50=ma50
             )
 
             st.plotly_chart(
@@ -1217,14 +1167,15 @@ def charts(symbol, currency):
                             title,
                             currency,
                             symbol,
-                            height=390
+                            height=390,
+                            show_ma20=ma20,
+                            show_ma50=ma50
                         )
 
                         st.plotly_chart(
                             fig,
                             use_container_width=True
                         )
-
 
 def compare_stocks(
     symbol1=None,
@@ -1324,53 +1275,7 @@ def stock_dashboard(
 
     section("Analysis")
 
-    if analysis_category == "📊 Graph Analysis":
-        charts(
-            symbol,
-            currency
-        )
-
-    elif analysis_category == "📈 Technical Analysis":
-        section("Technical Analysis")
-
-        rows = [
-            ("50-Day Moving Average", info.get("fiftyDayAverage")),
-            ("200-Day Moving Average", info.get("twoHundredDayAverage")),
-            ("52-Week High", info.get("fiftyTwoWeekHigh")),
-            ("52-Week Low", info.get("fiftyTwoWeekLow")),
-            ("Beta", info.get("beta")),
-            ("Average Volume", info.get("averageVolume"))
-        ]
-
-        table = []
-
-        for name, value in rows:
-            if value is None:
-                display = "N/A"
-            elif "Average" in name and "Volume" not in name:
-                display = f"{currency}{value:,.2f}"
-            elif "High" in name or "Low" in name:
-                display = f"{currency}{value:,.2f}"
-            else:
-                display = f"{value:,.2f}"
-
-            table.append({
-                "Market Indicator": name,
-                "Value": display
-            })
-
-        st.dataframe(
-            table,
-            use_container_width=True,
-            hide_index=True
-        )
-
-        st.caption(
-            "These are values directly provided by yfinance. "
-            "Calculated technical indicators will be added in the next phase."
-        )
-
-    elif analysis_category == "📑 Fundamental Analysis":
+    if analysis_category == "📑 Fundamental Analysis":
         fundamental_option = st.selectbox(
             "Select Fundamental Analysis",
             [
@@ -1415,12 +1320,57 @@ def stock_dashboard(
         elif fundamental_option == "Analyst Analysis":
             analyst_analysis(stock)
 
-    elif analysis_category == "🔄 Stock Comparison":
+    elif analysis_category == "📈 Technical Analysis":
+        section("Technical Analysis")
+
+        rows = [
+            ("50-Day Moving Average", info.get("fiftyDayAverage")),
+            ("200-Day Moving Average", info.get("twoHundredDayAverage")),
+            ("52-Week High", info.get("fiftyTwoWeekHigh")),
+            ("52-Week Low", info.get("fiftyTwoWeekLow")),
+            ("Beta", info.get("beta")),
+            ("Average Volume", info.get("averageVolume"))
+        ]
+
+        table = []
+
+        for name, value in rows:
+            if value is None:
+                display = "N/A"
+            elif "Average" in name and "Volume" not in name:
+                display = f"{currency}{value:,.2f}"
+            elif "High" in name or "Low" in name:
+                display = f"{currency}{value:,.2f}"
+            else:
+                display = f"{value:,.2f}"
+
+            table.append({
+                "Market Indicator": name,
+                "Value": display
+            })
+
+        st.dataframe(
+            table,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.caption(
+            "These are values directly provided by yfinance. "
+            "Calculated technical indicators will be added in the next phase."
+        )
+
+    elif analysis_category == "📊 Graph Analysis":
+        charts(
+            symbol,
+            currency
+        )
+
+    elif analysis_category == "🔄 Comparison of Stocks":
         compare_stocks(
             symbol,
             None
         )
-
 
 
 def main():
@@ -1444,109 +1394,90 @@ def main():
 
         st.divider()
 
-        st.markdown("### Stock Selection")
-
         if "selected_symbol" in st.session_state:
-            st.success(
-                f"Selected: {st.session_state['selected_symbol']}"
+            st.markdown(
+                f"**Selected Stock:** "
+                f"`{st.session_state['selected_symbol']}`"
             )
         else:
-            st.info("No stock selected.")
+            st.caption("No stock selected")
 
         st.divider()
 
-        st.markdown("### Supported Exchanges")
+        st.markdown(
+            "### Supported Exchanges"
+        )
 
         for name, code in EXCHANGES.items():
             st.write(
                 f"**{name}:** {code}"
             )
 
-    section("Main Menu")
+    section("Select Stock")
 
-    main_menu = st.selectbox(
-        "Choose a section",
-        [
-            "🔍 Search / Select Stock",
-            "📊 Analysis"
-        ],
-        key="main_menu"
-    )
+    exchange_instructions()
 
-    if main_menu == "🔍 Search / Select Stock":
-        section("Search for a Stock")
+    symbol = st.text_input(
+        "Stock Symbol",
+        value=st.session_state.get(
+            "selected_symbol",
+            ""
+        ),
+        placeholder="Example: AAPL or RELIANCE.NS"
+    ).upper().strip()
 
-        exchange_instructions()
-
-        symbol = st.text_input(
-            "Stock Symbol",
-            placeholder=(
-                "Example: AAPL or RELIANCE.NS"
-            )
-        ).upper().strip()
-
-        if st.button(
-            "Search Stock",
-            type="primary"
-        ):
-            if not symbol:
-                st.warning(
-                    "Please enter a stock symbol."
-                )
-                return
-
-            info = get_stock_info(symbol)
-
-            if info is None:
-                st.error(
-                    "Invalid stock symbol. "
-                    "Please check the stock symbol "
-                    "and exchange code."
-                )
-                return
-
-            st.session_state[
-                "selected_symbol"
-            ] = symbol
-
-            st.session_state[
-                "selected_info"
-            ] = info
-
-        if "selected_symbol" in st.session_state:
-            st.divider()
-            st.success(
-                f"Currently selected: "
-                f"{st.session_state['selected_symbol']}"
-            )
-            st.caption(
-                "Go to Main Menu → Analysis to view "
-                "different analyses without entering "
-                "the stock symbol again."
-            )
-
-    else:
-        if "selected_symbol" not in st.session_state:
-            st.info(
-                "Please select a stock first from "
-                "Search / Select Stock."
+    if st.button(
+        "Search / Select Stock",
+        type="primary"
+    ):
+        if not symbol:
+            st.warning(
+                "Please enter a stock symbol."
             )
             return
 
-        analysis_category = st.selectbox(
-            "Select Analysis Category",
+        info = get_stock_info(symbol)
+
+        if info is None:
+            st.error(
+                "Invalid stock symbol. "
+                "Please check the stock symbol "
+                "and exchange code."
+            )
+            return
+
+        st.session_state[
+            "selected_symbol"
+        ] = symbol
+
+        st.session_state[
+            "selected_info"
+        ] = info
+
+    if "selected_symbol" in st.session_state:
+        st.divider()
+
+        analysis_category = st.radio(
+            "Analysis",
             [
-                "📊 Graph Analysis",
-                "📈 Technical Analysis",
                 "📑 Fundamental Analysis",
-                "🔄 Stock Comparison"
+                "📈 Technical Analysis",
+                "📊 Graph Analysis",
+                "🔄 Comparison of Stocks"
             ],
+            horizontal=True,
             key="analysis_category"
         )
 
+        st.divider()
+
         stock_dashboard(
-            st.session_state["selected_symbol"],
-            st.session_state["selected_info"],
+            st.session_state[
+                "selected_symbol"
+            ],
+            st.session_state[
+                "selected_info"
+            ],
             analysis_category
         )
 
