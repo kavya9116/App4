@@ -280,8 +280,8 @@ def make_chart(
     currency,
     symbol,
     height=500,
-    show_ma20=False,
-    show_ma50=False
+    show_ma50=False,
+    show_ma200=False
 ):
     fig = go.Figure()
 
@@ -294,17 +294,6 @@ def make_chart(
         )
     )
 
-    if show_ma20:
-        ma20 = data["Close"].rolling(20).mean()
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=ma20,
-                mode="lines",
-                name="20D MA"
-            )
-        )
-
     if show_ma50:
         ma50 = data["Close"].rolling(50).mean()
         fig.add_trace(
@@ -313,6 +302,17 @@ def make_chart(
                 y=ma50,
                 mode="lines",
                 name="50D MA"
+            )
+        )
+
+    if show_ma200:
+        ma200 = data["Close"].rolling(200).mean()
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=ma200,
+                mode="lines",
+                name="200D MA"
             )
         )
 
@@ -1090,14 +1090,14 @@ def charts(symbol, currency):
 
     st.markdown("### Moving Average Overlays")
 
-    ma20 = st.checkbox(
-        "Show 20D Moving Average",
-        key="show_ma20"
-    )
-
     ma50 = st.checkbox(
         "Show 50D Moving Average",
         key="show_ma50"
+    )
+
+    ma200 = st.checkbox(
+        "Show 200D Moving Average",
+        key="show_ma200"
     )
 
     if st.button(
@@ -1119,8 +1119,8 @@ def charts(symbol, currency):
                 choice,
                 currency,
                 symbol,
-                show_ma20=ma20,
-                show_ma50=ma50
+                show_ma50=ma50,
+                show_ma200=ma200
             )
 
             st.plotly_chart(
@@ -1168,8 +1168,8 @@ def charts(symbol, currency):
                             currency,
                             symbol,
                             height=390,
-                            show_ma20=ma20,
-                            show_ma50=ma50
+                            show_ma50=ma50,
+                            show_ma200=ma200
                         )
 
                         st.plotly_chart(
@@ -1457,17 +1457,34 @@ def main():
     if "selected_symbol" in st.session_state:
         st.divider()
 
-        analysis_category = st.radio(
-            "Analysis",
-            [
-                "📑 Fundamental Analysis",
-                "📈 Technical Analysis",
-                "📊 Graph Analysis",
-                "🔄 Comparison of Stocks"
-            ],
-            horizontal=True,
-            key="analysis_category"
-        )
+        st.markdown("### Analysis")
+
+        nav_items = [
+            "📑 Fundamental Analysis",
+            "📈 Technical Analysis",
+            "📊 Graph Analysis",
+            "🔄 Comparison of Stocks"
+        ]
+
+        if "analysis_category" not in st.session_state:
+            st.session_state["analysis_category"] = nav_items[0]
+
+        nav_cols = st.columns(4)
+
+        for col, item in zip(nav_cols, nav_items):
+            with col:
+                if st.button(
+                    item,
+                    key=f"nav_{item}",
+                    type=(
+                        "primary"
+                        if st.session_state["analysis_category"] == item
+                        else "secondary"
+                    ),
+                    use_container_width=True
+                ):
+                    st.session_state["analysis_category"] = item
+                    st.rerun()
 
         st.divider()
 
